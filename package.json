@@ -10,7 +10,7 @@
   "dependencies": {
     "express": "5.1.0",
     "body-parser": "2.2.0",
-    "path": "0.1.7",
+    "path": "0.12.7",
     "fs": "0.0.1-security"
   },
   "devDependencies": {
