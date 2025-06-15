@@ -1,68 +1,74 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); // Not used here, but kept in case you add file logging later.
 const bodyParser = require('body-parser');
+const cors = require('cors');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 
 // API endpoint for code conversion
 app.post('/api/convert', (req, res) => {
   const { code, from, to } = req.body;
-  
+
+  if (!code || !from || !to) {
+    return res.status(400).json({ success: false, error: 'Missing required fields: code, from, to' });
+  }
+
   try {
-    let convertedCode = '';
-    
-    // Conversion logic
-    if (from === 'node-telegram' && to === 'telegraf') {
-      convertedCode = convertNodeTelegramToTelegraf(code);
-    } else if (from === 'telegraf' && to === 'node-telegram') {
-      convertedCode = convertTelegrafToNodeTelegram(code);
-    } else if (from === 'javascript' && to === 'python') {
-      convertedCode = convertJsToPython(code);
-    } else {
-      throw new Error('Unsupported conversion');
+    let convertedCode;
+
+    switch (`${from}->${to}`) {
+      case 'node-telegram->telegraf':
+        convertedCode = convertNodeTelegramToTelegraf(code);
+        break;
+      case 'telegraf->node-telegram':
+        convertedCode = convertTelegrafToNodeTelegram(code);
+        break;
+      case 'javascript->python':
+        convertedCode = convertJsToPython(code);
+        break;
+      default:
+        throw new Error('Unsupported conversion type');
     }
-    
+
     res.json({ success: true, convertedCode });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Conversion functions
+// Conversion Functions
 function convertNodeTelegramToTelegraf(code) {
-  // Basic conversion examples - you'd expand this
   return code
-    .replace(/TelegramBot\(/g, 'Telegraf(')
-    .replace(/\.on\('text'/g, '.on("text")')
-    .replace(/\.sendMessage\(/g, '.reply(')
+    .replace(/TelegramBot\s*/g, 'Telegraf(')
+    .replace(/\.on'text'/g, '.on("text")')
+    .replace(/\.sendMessage\s*/g, '.reply(')
     .replace(/msg\.chat\.id/g, 'ctx.chat.id')
     .replace(/msg\.text/g, 'ctx.message.text');
 }
 
 function convertTelegrafToNodeTelegram(code) {
   return code
-    .replace(/Telegraf\(/g, 'TelegramBot(')
-    .replace(/\.on\("text"/g, ".on('text'")
-    .replace(/\.reply\(/g, '.sendMessage(')
+    .replace(/Telegraf\s*/g, 'TelegramBot(')
+    .replace(/\.on"text"/g, ".on('text')")
+    .replace(/\.reply\s*/g, '.sendMessage(')
     .replace(/ctx\.chat\.id/g, 'msg.chat.id')
     .replace(/ctx\.message\.text/g, 'msg.text');
 }
 
 function convertJsToPython(code) {
-  // Basic JS to Python conversion
   return code
-    .replace(/const /g, '')
-    .replace(/let /g, '')
-    .replace(/var /g, '')
-    .replace(/function /g, 'def ')
+    .replace(/const |let |var /g, '')
+    .replace(/function\s+(\w+)/g, 'def $1')
     .replace(/{/g, ':')
     .replace(/}/g, '')
-    .replace(/console\.log\(/g, 'print(')
+    .replace(/console\.log/g, 'print(')
     .replace(/;/g, '')
     .replace(/===/g, '==')
     .replace(/`([^`]*)`/g, '"""$1"""');
@@ -70,5 +76,5 @@ function convertJsToPython(code) {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
